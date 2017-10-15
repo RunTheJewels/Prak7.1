@@ -10,6 +10,8 @@ using namespace std;
 
 const int SIZE = 3; 
 
+const int N = 5;
+
 SType *EV;
 
 // void mult(SMatrix **A, SMatrix **B, SMatrix **C) {
@@ -99,13 +101,10 @@ SType filler1(int i, int j)
 	return mat[i*3+j];
 }
 
-#ifdef USE_COMPLEX
-SType filler0(int i, int j) {
-	i++;
-	j++;
-	return SType(10 * i + j, 10 * j + i);
+SType fillerRo(int i, int j) {
+	if (i == 1 and j == 1) return 1;
+	return 0;
 }
-#endif
 
 /// SVD demo
 void printSVD(SMatrix &x, bool isRoot) {
@@ -114,14 +113,18 @@ void printSVD(SMatrix &x, bool isRoot) {
 	SReal *S = x.calculateSVD(&SSize, &U, &VT, isRoot, &EV);
 	if (isRoot) {
 		cout << endl;
-		cout << "Producing SVD:" << endl;
+		cout << "Матрица собственных векторов:" << endl;
 		cout << " =" << endl;
 	}
 	cout << *U;
-	if (isRoot) cout << " *" << endl;
 	SMatrix eigenM(*U,SIZE,SIZE);
 	// eigenM.setIdentity();
 	eigenM.populate(&fillerEV);
+	if (isRoot) {
+		cout << endl;
+		cout << "Матрица собственных значений:" << endl;
+		cout << " =" << endl;
+	}
 	cout << eigenM;
 	if (isRoot) {
 		// cout << " *" << endl;
@@ -141,7 +144,7 @@ void printSVD(SMatrix &x, bool isRoot) {
 		// }
 		// cout << endl;
 	}
-	if (isRoot) cout << " *" << endl;
+	if (isRoot) cout << endl;
 	// cout << *VT;
 	
 	SMatrix res(*U,SIZE,SIZE);
@@ -152,16 +155,33 @@ void printSVD(SMatrix &x, bool isRoot) {
 	complex_d one = complex_d(1,0), zero = complex_d(0,0);
 
 	int *desca = U->getDesc(), *descb = eigenM.getDesc(), *descc = res.getDesc();
-	if (isRoot) cout << desca[6] << " " << descb[6] << " " << descc[6] << endl;
+
 	pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, U->data, &intone, &intone, desca, eigenM.data, 
 		&intone, &intone, descb, &zero, res.data, &intone, &intone, descc);
 
 	eigenM.populate(&fillerZero);
 
-	pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, res.data, &intone, &intone, descc, U->data, &intone, &intone, desca,
+	pzgemm_((char *) "N", (char *) "C", &size, &size, &size, &one, res.data, &intone, &intone, descc, U->data, &intone, &intone, desca,
 		&zero, eigenM.data, &intone, &intone, descb);
 
-	cout << eigenM;
+	// cout << eigenM;
+
+	SMatrix Ro(*U,SIZE,SIZE);
+	int *descRo = Ro.getDesc();
+
+	Ro.populate(&fillerRo);
+	if (isRoot)	cout << "iter = 0:\n" << Ro;
+
+	for (int i = 0; i < N; i++)
+	{
+		res.populate(&fillerZero);
+		if (isRoot)	cout << "iter = " << i+1 << ":\n";
+		pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, eigenM.data, &intone, &intone, descb, Ro.data, 
+		&intone, &intone, descRo, &zero, res.data, &intone, &intone, descc);
+		pzgemm_((char *) "N", (char *) "C", &size, &size, &size, &one, res.data, &intone, &intone, descc, eigenM.data, 
+		&intone, &intone, descb, &zero, Ro.data, &intone, &intone, descRo);
+		cout << Ro;
+	}
 
 	delete U, VT, SSize; 
 	delete[] S;
