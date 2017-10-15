@@ -247,14 +247,13 @@ public:
 	 * Calculates singular value decomposition and returns all parts of it.
 	 * \return The array of singular values.
 	 */
-	SReal* calculateSVD(int *SSize = NULL, SMatrix **U = NULL, SMatrix **VT = NULL);
+	SReal* calculateSVD(int *SSize = NULL, SMatrix **U = NULL, SMatrix **VT = NULL, bool isRoot = 1, SType** ev = NULL);
 
 private:
 	void create(int icon = -2);
 	void destroy();
 	
 	static SType fillerIdentity(int i, int j);
-	int* getDesc();
 	int* getDesc(int rows, int cols, int procRows);
 
 	static int rank, nProcs, blockSize, root;
@@ -264,7 +263,9 @@ private:
 		myProcRowsOffset, myProcColsOffset,
 		myProcRows, myProcCols, myProcSize;
 	bool myProcOk;
+public:
 	SType *data;
+	int* getDesc();
 };
 
 ostream& operator<<(ostream& out, const SMatrix& matrix);

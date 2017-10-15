@@ -227,12 +227,15 @@ int* SMatrix::getDesc(int rows, int cols, int procRows) {
 	return desc;
 }
 
-SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT) {
-	int nMin = min(nRows, nCols);
+SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT, bool isRoot, SType **ev) {
+	if (nRows != nCols) throw "Not square matrix";
+	
+	int nMin = nRows;
+	SType deltat = SType(1,0);
 	SMatrix	*u = new SMatrix(*this, nRows, nMin),
 		*vt = new SMatrix(*this, nMin, nCols);
 	SReal *S = new SReal[nMin];
-	//SType *S = new SReal[nMin]; //  ----- 
+	SType *SC = new SType[nMin];
         int	*desc = getDesc(),
 		*descU = u->getDesc(),
 		*descVT = vt->getDesc();
@@ -245,36 +248,28 @@ SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT) {
 	int ione = 1, info, lwork = 10 * nRows * nCols;
 
 #ifdef USE_COMPLEX
-	//SReal *rwork = new SReal[1 + 4 * max(nRows, nCols)];
-	SType *rwork = new SType[1 + 4 * max(nRows, nCols)]; // ----
+	SType *rwork = new SType[1 + 4 * max(nRows, nCols)];
 	int lrwork = 1 + 4 * max(nRows, nCols) * max(nRows, nCols);
 #endif
-	/*pNgesvd((char *) "V", (char *) "V", &nRows, &nCols, dataCopy, &ione, &ione, desc,
-		S, u->data, &ione, &ione, descU, vt->data, &ione, &ione, descVT,
-		work, &lwork,
-#ifdef USE_COMPLEX
-		rwork,
-#endif
-		&info);*/
-	pzheev_((char*) "V", (char*) "U", &nRows, dataCopy, &ione, &ione, desc, S, u->data, &ione, &ione, descU, work, &lwork, rwork, &lrwork, &info);
+
+	pzheev_((char*) "V", (char*) "U", &nRows, dataCopy, &ione, &ione, 
+		desc, S, u->data, &ione, &ione, descU, work, &lwork, rwork, 
+		&lrwork, &info);
 	
 #ifdef USE_COMPLEX
 	lwork = (int) work[0].real();
 #else
 	lwork = (int) work[0];
 #endif
+	
+	for (int i = 0; i < nMin; i++)
+	{
+		SC[i] = exp(S[i] * deltat * SType(0,-1));
+	}
 
 	delete[] work;
 	work = new SType[lwork];
-
-	// /*pNgesvd*/pzheev_((char *) "V", (char *) "V", /*&nRows,*/ &nCols, dataCopy, &ione, &ione, desc,
-		//S, u->data, &ione, &ione, descU, vt->data, &ione, &ione, descVT,
-		//work, &lwork,
-//#ifdef USE_COMPLEX
-		//rwork,
-//#endif
-		//&info);
-
+	
 	delete[] work, dataCopy;
 #ifdef USE_COMPLEX
 	delete[] rwork;
@@ -296,6 +291,8 @@ SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT) {
 	} else {
 		delete vt;
 	}
+
+	*ev = SC;
 
 	return S;
 }
