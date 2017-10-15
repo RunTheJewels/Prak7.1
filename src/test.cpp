@@ -13,10 +13,6 @@ const int SIZE = 3;
 SType *EV;
 
 // void mult(SMatrix **A, SMatrix **B, SMatrix **C) {
-// 	if (nRows != nCols) throw "Not square matrix";
-	
-// 	int nMin = nRows;
-// 	SType deltat = SType(1,0);
 // 	SMatrix	*u = new SMatrix(*this, nRows, nMin),
 // 		*vt = new SMatrix(*this, nMin, nCols);
 // 	SReal *S = new SReal[nMin];
@@ -123,8 +119,8 @@ void printSVD(SMatrix &x, bool isRoot) {
 	}
 	cout << *U;
 	if (isRoot) cout << " *" << endl;
-	SMatrix eigenM(SIZE,SIZE);
-	eigenM.setIdentity();
+	SMatrix eigenM(*U,SIZE,SIZE);
+	// eigenM.setIdentity();
 	eigenM.populate(&fillerEV);
 	cout << eigenM;
 	if (isRoot) {
@@ -148,18 +144,24 @@ void printSVD(SMatrix &x, bool isRoot) {
 	if (isRoot) cout << " *" << endl;
 	// cout << *VT;
 	
-	// SMatrix res(SIZE,SIZE);
+	SMatrix res(*U,SIZE,SIZE);
 	// res.setIdentity();
-	// res.populate(&fillerZero);
+	res.populate(&fillerZero);
 
-	// int size = SIZE, intone = 1;
-	// complex_d one = complex_d(1,0), zero = complex_d(0,0);
+	int size = SIZE, intone = 1;
+	complex_d one = complex_d(1,0), zero = complex_d(0,0);
 
-	// int *desca = U->getDesc(), *descb = eigenM.getDesc(), *descc = res.getDesc();
-	// pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, U->data, &intone, &intone, desca, eigenM.data, 
-	// 	&intone, &intone, descb, &zero, res.data, &intone, &intone, descc);
+	int *desca = U->getDesc(), *descb = eigenM.getDesc(), *descc = res.getDesc();
+	if (isRoot) cout << desca[6] << " " << descb[6] << " " << descc[6] << endl;
+	pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, U->data, &intone, &intone, desca, eigenM.data, 
+		&intone, &intone, descb, &zero, res.data, &intone, &intone, descc);
 
-	// cout << res;
+	eigenM.populate(&fillerZero);
+
+	pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, res.data, &intone, &intone, descc, U->data, &intone, &intone, desca,
+		&zero, eigenM.data, &intone, &intone, descb);
+
+	cout << eigenM;
 
 	delete U, VT, SSize; 
 	delete[] S;
