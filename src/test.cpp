@@ -8,9 +8,11 @@ typedef complex<double> complex_d;
 
 using namespace std;
 
-const int SIZE = 3; 
+const int SIZE = 3; //Размер матрицы
 
-const int N = 20;
+const int N = 20; //количество итераций
+
+const SType deltat = SType(1,0); //Дельта-t, делённая на постоянную Планка
 
 SType *EV;
 
@@ -40,34 +42,31 @@ SType filler1(int i, int j)
 }
 
 SType fillerRo(int i, int j) {
-	if (i == 1 and j == 1) return 1;
-	//if (i==0 or i ==2 or j==0 or j==2) return 0.5;
+	if (i == 0 and j == 0) return 1;
+	// if (i==0 or i ==2 or j==0 or j==2) return 0.5;
 	return 0;
 }
 
-/// SVD demo
-void printSVD(SMatrix &x, bool isRoot, int rank) {
+void printEvol(SMatrix &x, bool isRoot) {
 	
 	int SSize;
 	
-	SMatrix *U, *VT;
-	SReal *S = x.calculateSVD(&SSize, &U, &VT, isRoot, &EV);
+	SMatrix *U;
+	SReal *S = x.calculateEigen(&SSize, &U, isRoot, &EV, deltat);
 	
 	if (isRoot) {
 		cout << endl;
-		cout << "Матрица собственных векторов:" << endl;
-		cout << " =" << endl;
+		cout << "Матрица собственных векторов = " << endl;
 	}
 	
 	cout << *U;
 	
 	SMatrix eigenM(*U,SIZE,SIZE);
-	eigenM.populate(&fillerEV);
+	eigenM.populate(&fillerEV); // Изначально eigenM хранит exp(-i * deltat * собств. значения) на диаголнальных элементах
 	
 	if (isRoot) {
 		cout << endl;
-		cout << "Матрица собственных значений:" << endl;
-		cout << " =" << endl;
+		cout << "Матрица собственных значений = " << endl;
 	}
 	
 	cout << eigenM;
@@ -88,10 +87,10 @@ void printSVD(SMatrix &x, bool isRoot, int rank) {
 	eigenM.populate(&fillerZero);
 
 	pzgemm_((char *) "N", (char *) "C", &size, &size, &size, &one, res.data, &intone, &intone, descc, U->data, &intone, &intone, desca,
-		&zero, eigenM.data, &intone, &intone, descb);
+		&zero, eigenM.data, &intone, &intone, descb); // Теперь и далее eigenM хранит exp(-i * deltat * гамильтониан)
 
 
-	SMatrix Ro(*U,SIZE,SIZE);
+	SMatrix Ro(*U,SIZE,SIZE); // Матрица плотности
 	int *descRo = Ro.getDesc();
 
 	Ro.populate(&fillerRo);
@@ -113,7 +112,7 @@ void printSVD(SMatrix &x, bool isRoot, int rank) {
 		cout << Ro;
 	}
 	
-	delete U, VT, SSize; 
+	delete U, SSize; 
 	delete[] S;
 }
 
@@ -132,7 +131,7 @@ int main(int argc, char **argv) {
 		x.setIdentity();
 		x.populate(&filler1);
 		cout << x;
-		printSVD(x, isRoot,rank);
+		printEvol(x, isRoot);
 	}
 	
 	SMatrix::exit();

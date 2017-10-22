@@ -227,40 +227,30 @@ int* SMatrix::getDesc(int rows, int cols, int procRows) {
 	return desc;
 }
 
-SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT, bool isRoot, SType **ev) {
+SReal* SMatrix::calculateEigen(int *SSize, SMatrix **U, bool isRoot, SType **ev, SType deltat ) {
 	if (nRows != nCols) throw "Not square matrix";
 	
 	int nMin = nRows;
-	SType deltat = SType(1,0);
-	SMatrix	*u = new SMatrix(*this, nRows, nMin),
-		*vt = new SMatrix(*this, nMin, nCols);
+	SMatrix	*u = new SMatrix(*this, nMin, nMin);
+
 	SReal *S = new SReal[nMin];
 	SType *SC = new SType[nMin];
         int	*desc = getDesc(),
-		*descU = u->getDesc(),
-		*descVT = vt->getDesc();
+		*descU = u->getDesc();
 
 	SType *dataCopy = new SType[myProcSize];
 	memcpy(dataCopy, data, myProcSize * sizeof(SType));
 
-	SType *work = new SType[10 * nRows * nCols];
+	SType *work = new SType[10 * nMin * nMin];
 
-	int ione = 1, info, lwork = 10 * nRows * nCols;
+	int ione = 1, info, lwork = 10 * nMin * nMin;
 
-#ifdef USE_COMPLEX
-	SType *rwork = new SType[1 + 4 * max(nRows, nCols)];
-	int lrwork = 1 + 4 * max(nRows, nCols) * max(nRows, nCols);
-#endif
+	SType *rwork = new SType[1 + 4 * nMin];
+	int lrwork = 1 + 4 * nMin * nMin;
 
-	pzheev_((char*) "V", (char*) "U", &nRows, dataCopy, &ione, &ione, 
+	pzheev_((char*) "V", (char*) "U", &nMin, dataCopy, &ione, &ione, 
 		desc, S, u->data, &ione, &ione, descU, work, &lwork, rwork, 
 		&lrwork, &info);
-	
-#ifdef USE_COMPLEX
-	lwork = (int) work[0].real();
-#else
-	lwork = (int) work[0];
-#endif
 	
 	for (int i = 0; i < nMin; i++)
 	{
@@ -268,13 +258,10 @@ SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT, bool isRoot,
 	}
 
 	delete[] work;
-	work = new SType[lwork];
-	
-	delete[] work, dataCopy;
-#ifdef USE_COMPLEX
 	delete[] rwork;
-#endif
-	delete[] desc, descU, descVT;
+ 	delete[] dataCopy;
+
+	delete[] desc, descU;
 
 	if (SSize != NULL) {
 		*SSize = nMin;
@@ -284,12 +271,6 @@ SReal* SMatrix::calculateSVD(int *SSize, SMatrix **U, SMatrix **VT, bool isRoot,
 		*U = u;
 	} else {
 		delete u;
-	}
-
-	if (VT != NULL) {
-		*VT = vt;
-	} else {
-		delete vt;
 	}
 
 	*ev = SC;

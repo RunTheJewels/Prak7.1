@@ -247,7 +247,7 @@ public:
 	 * Calculates singular value decomposition and returns all parts of it.
 	 * \return The array of singular values.
 	 */
-	SReal* calculateSVD(int *SSize = NULL, SMatrix **U = NULL, SMatrix **VT = NULL, bool isRoot = 1, SType** ev = NULL);
+	SReal* calculateEigen(int *SSize = NULL, SMatrix **U = NULL, bool isRoot = 1, SType** ev = NULL, SType deltat = SType(1,0));
 
 private:
 	void create(int icon = -2);
