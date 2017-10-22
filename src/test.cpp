@@ -95,51 +95,23 @@ void printSVD(SMatrix &x, bool isRoot, int rank) {
 	int *descRo = Ro.getDesc();
 
 	Ro.populate(&fillerRo);
-	if (isRoot)	cout << "iter = 0:\n" << Ro;
+	if (isRoot)	cout << "iter = 0:\n";
+	cout << Ro;
 
 	for (int i = 0; i < N; i++)
-	{
-		Ro.barrier();
-		res.barrier();
-		eigenM.barrier();
-		MPI_Barrier(MPI_COMM_WORLD);
-		
+	{		
 		res.populate(&fillerZero);
 		
 		pzgemm_((char *) "N", (char *) "N", &size, &size, &size, &one, eigenM.data, &intone, &intone, descb, Ro.data, 
 		&intone, &intone, descRo, &zero, res.data, &intone, &intone, descc);
-		
-		Ro.barrier();
-		res.barrier();
-		eigenM.barrier();
-		MPI_Barrier(MPI_COMM_WORLD);
 		
 		pzgemm_((char *) "N", (char *) "C", &size, &size, &size, &one, res.data, &intone, &intone, descc, eigenM.data, 
 		&intone, &intone, descb, &zero, Ro.data, &intone, &intone, descRo);
 		
 		if (isRoot)	cout << "iter = " << i+1 << ":\n";
 		
-		
-		Ro.barrier();
-		res.barrier();
-		eigenM.barrier();
-		MPI_Barrier(MPI_COMM_WORLD);
-		
 		cout << Ro;
-		
-		Ro.barrier();
-		res.barrier();
-		eigenM.barrier();
-		
-		MPI_Barrier(MPI_COMM_WORLD);
 	}
-	
-		cout << rank << endl;
-	
-		Ro.barrier();
-		res.barrier();
-		eigenM.barrier();
-		MPI_Barrier(MPI_COMM_WORLD);
 	
 	delete U, VT, SSize; 
 	delete[] S;
